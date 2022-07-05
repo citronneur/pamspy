@@ -14,7 +14,7 @@ It will track a particular userland function inside the PAM (Pluggable Authentic
 
 ## How to launch?
 
-`pamspy` is built as a static binary without any dependencies, and available on the [release]() page.
+`pamspy` is built as a static binary without any dependencies, and available on the [release](https://github.com/citronneur/pamspy/releases/) page.
 
 ```
 Usage: pamspy [OPTION...]
